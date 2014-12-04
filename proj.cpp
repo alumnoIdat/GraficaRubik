@@ -51,6 +51,11 @@ float enfocar = 1.0;
 int modo = 0;
 
 
+// GIRAR EN MODO ROTACION
+int inic_x,inic_y;
+bool rotando=false;
+
+
 void generarDatosCubo();
 void dibujaCubo(int i);
 void ponColor(int color);
@@ -248,7 +253,7 @@ void tecladoS(int tecla, int x, int y)
 		escena();
 	}
 
-	if(tecla == GLUT_KEY_LEFT){
+/*	if(tecla == GLUT_KEY_LEFT){
 		angY+=2.0;
 //printf("%.2f\n",angY);
 		escena();	
@@ -259,7 +264,7 @@ void tecladoS(int tecla, int x, int y)
 //printf("%.2f\n",angY);
 		escena();
 	}
-
+*/
 }
 
 void teclado(unsigned char tecla, int x,int y)
@@ -275,14 +280,28 @@ void teclado(unsigned char tecla, int x,int y)
 
 void mouse(int boton,int estado,int x,int y )
 {
- /*    if (boton==GLUT_LEFT_BUTTON && estado==GLUT_DOWN && modo==MODO_JUEGO ) {
-	enfocar+=0.2;
-	escena();
+	if (boton==GLUT_LEFT_BUTTON && estado==GLUT_DOWN && modo==MODO_ROTACION ) {
+		rotando = true;
+		inic_x = x;
+		inic_y = y;
      }
-     if (boton==GLUT_RIGHT_BUTTON && estado==GLUT_DOWN && modo==MODO_JUEGO) {
-	enfocar-=0.2;
-	escena();
-     }*/
+	if (boton==GLUT_LEFT_BUTTON && estado==GLUT_UP && modo==MODO_ROTACION) {
+		rotando = false;
+	}
+}
+
+void rotarModoRotacion(int x, int y){
+	if(modo==MODO_ROTACION && rotando){
+		float dif_x=float(x-inic_x)/5.0;
+		float dif_y=float(y-inic_y)/5.0;
+		if(dif_x < dif_y){
+			angY+=dif_y;
+		}else{
+			angX-=dif_x;
+		}
+		escena();
+	}
+
 }
 
 void reshape(int w, int h)
@@ -291,7 +310,6 @@ void reshape(int w, int h)
    glViewport(0,0,(GLsizei)w, (GLsizei)h);
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity();
-//glFrustum(-5, 5, -5, 5, 5, 1000);
     if (w <= h)
         glOrtho (-size, size, -size / redimension, size/ redimension, 10.0f*enfocar, -7.00f*enfocar);
     else
@@ -334,6 +352,7 @@ int main(int argc, char** argv)
     glutDisplayFunc(escena);
     glutReshapeFunc(reshape);
     glutMouseFunc(mouse);
+	glutMotionFunc(rotarModoRotacion);
     glutSpecialFunc(tecladoS);
     glutKeyboardFunc(teclado);
 
