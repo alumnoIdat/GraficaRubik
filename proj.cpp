@@ -20,24 +20,43 @@
 #define  MODO_JUEGO	2
 #define  MODO_STANDBY	3
 
+#define  MOV_EJEX	1
+#define  MOV_EJEY	2
+
+#define	HORARIO		-1
+#define ANTIHORARIO	1
 //static float width, height;
 // ventana
 static int ventanaX=500;
 static int ventanaY=500;
 
 // Ángulos de rotación de vista
-float angX = -22.0, angY = 134.0, angZ = 0.0;
+//float angX = -22.0, angY = 134.0, angZ = 0.0;
+float angX = 0.0, angY = 0.0, angZ = 0.0;
 
 // numero de cubos
 int numCubos = 8;
 float ladoCubo = 2.0;
+
+// rubik logico
+int rubikLogico[2][2][2];
+
+bool ratonPresionado = false;
+
+int seleccionado = -2;
+int direccion = 0;
+int sentido = 0;
+
+float antX, antY;
+int giroAntX, giroAntY;
+
 // estructura para inicializar las posiciones 
 // y los colores de las caras de los cubos
 
 typedef struct{
 	float x, y, z;
-//	giroX, giroY, giroZ
-	float alfaX, alfaY, alfaZ;
+//	alfaX, alfaY, alfaZ
+	int alfaX, alfaY, alfaZ;
 	float AntX, AntY, AntZ;
 	int colores[6];
 }cubo;
@@ -51,11 +70,6 @@ float enfocar = 1.0;
 int modo = 0;
 
 
-// GIRAR EN MODO ROTACION
-int inic_x,inic_y;
-bool rotando=false;
-
-
 void generarDatosCubo();
 void dibujaCubo(int i);
 void ponColor(int color);
@@ -65,15 +79,15 @@ void reshape(int w, int h);
 
 void init(void)
 {
-    glClearColor(0.0,0.0,0.0,0.0);
-    glShadeModel(GL_FLAT);
+	glEnable(GL_DEPTH_TEST);
+	glClearColor(0.0,0.0,0.0,0.0);
+	glShadeModel(GL_FLAT);
 }
 
 void escena(void)
 {
-	GLfloat angulo, radio = 8.0f, x, y;
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_DEPTH_TEST);
+//	glEnable(GL_DEPTH_TEST);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -84,8 +98,9 @@ void escena(void)
 	glRotatef(angZ,0.0,0.0,1.0);
 
 	glLineWidth(1);
-
+//printf("escena %d\n",modo);
 	for(int i=0; i<numCubos; i++){
+	glLoadName(i);
 	glPushMatrix();
 		glTranslatef(modelo[i].x , modelo[i].y , modelo[i].z);
 		glRotatef(modelo[i].alfaX, 1.0, 0.0, 0.0);
@@ -106,16 +121,16 @@ void generarDatosCubo(){
 	modelo = (cubo*) malloc(numCubos*sizeof(cubo));
 
 // todas las caras negras primero
-	for (i = 0; i < numCubos; i++)
+/*	for (i = 0; i < numCubos; i++)
 	for (j = 0; j < 6; j++)
 	modelo[i].colores[j] = NEGRO;
-
+*/
 // cambiamos los colores y escribimos las posiciones
 	for (i = 0; i < numCubos; i++)
 	{
 		modelo[i].AntX = modelo[i].x = ladoCubo*(i % 2);
-		modelo[i].AntY = modelo[i].y = ladoCubo*(i / (2*2));
-		modelo[i].AntZ = modelo[i].z = ladoCubo*((i / 2) % 2);
+		modelo[i].AntY = modelo[i].y = ladoCubo*(i/(2*2));
+		modelo[i].AntZ = modelo[i].z = ladoCubo*((i/2)%2);
 
 		modelo[i].alfaX = 0;
 		modelo[i].alfaY = 0;
@@ -127,245 +142,488 @@ void generarDatosCubo(){
 		modelo[i].colores[3] = (((i / 2) % 2) == 0) ? NARANJA : NEGRO;
 		modelo[i].colores[4] = ((i % 2) == 0) ? BLANCO : NEGRO;
 		modelo[i].colores[5] = (i < 4) ? AZUL : NEGRO;
-   }
+		
+		rubikLogico[i%2][i/(2*2)][(i/2)%2]=i;
+	}
 
+}
+
+bool verificar_solucion(){
+		if((rubikLogico[0][0][0]+rubikLogico[1][1][1])!=7 || (rubikLogico[1][0][0]+rubikLogico[0][1][1])!=7)	return false;
+		if(abs(rubikLogico[0][0][0]-rubikLogico[1][0][0])*abs(rubikLogico[0][0][0]-rubikLogico[0][0][1])*abs(rubikLogico[0][0][0]-rubikLogico[0][1][0]) != 8)	return false;
+	return true;
 }
 
 void dibujaCubo(int i){
 	glPushMatrix();
 	glBegin(GL_QUADS);
-	ponColor(modelo[i].colores[0]);
-      glVertex3f(0, ladoCubo, 0);
-      glVertex3f(0, ladoCubo, ladoCubo);
-      glVertex3f(ladoCubo, ladoCubo, ladoCubo);
-      glVertex3f(ladoCubo, ladoCubo, 0);
+		ponColor(modelo[i].colores[0]);
+		glVertex3f(0, ladoCubo, 0);
+		glVertex3f(0, ladoCubo, ladoCubo);
+		glVertex3f(ladoCubo, ladoCubo, ladoCubo);
+		glVertex3f(ladoCubo, ladoCubo, 0);
 
-      ponColor(modelo[i].colores[1]);
-      glVertex3f(0, ladoCubo, ladoCubo);
-      glVertex3f(0, 0, ladoCubo);
-      glVertex3f(ladoCubo, 0, ladoCubo);
-      glVertex3f(ladoCubo, ladoCubo, ladoCubo);
+		ponColor(modelo[i].colores[1]);
+		glVertex3f(0, ladoCubo, ladoCubo);
+		glVertex3f(0, 0, ladoCubo);
+		glVertex3f(ladoCubo, 0, ladoCubo);
+		glVertex3f(ladoCubo, ladoCubo, ladoCubo);
 
-      ponColor(modelo[i].colores[2]);
-      glVertex3f(ladoCubo, ladoCubo, ladoCubo);
-      glVertex3f(ladoCubo, 0, ladoCubo);
-      glVertex3f(ladoCubo, 0, 0);
-      glVertex3f(ladoCubo, ladoCubo, 0);
+		ponColor(modelo[i].colores[2]);
+		glVertex3f(ladoCubo, ladoCubo, ladoCubo);
+		glVertex3f(ladoCubo, 0, ladoCubo);
+		glVertex3f(ladoCubo, 0, 0);
+		glVertex3f(ladoCubo, ladoCubo, 0);
 
-      ponColor(modelo[i].colores[3]);
-      glVertex3f(0, ladoCubo, 0);
-      glVertex3f(0, 0, 0);
-      glVertex3f(ladoCubo, 0, 0);
-      glVertex3f(ladoCubo, ladoCubo, 0);
+		ponColor(modelo[i].colores[3]);
+		glVertex3f(0, ladoCubo, 0);
+		glVertex3f(0, 0, 0);
+		glVertex3f(ladoCubo, 0, 0);
+		glVertex3f(ladoCubo, ladoCubo, 0);
 
-      ponColor(modelo[i].colores[4]);
-      glVertex3f(0, ladoCubo, ladoCubo);
-      glVertex3f(0, 0, ladoCubo);
-      glVertex3f(0, 0, 0);
-      glVertex3f(0, ladoCubo, 0);
+		ponColor(modelo[i].colores[4]);
+		glVertex3f(0, ladoCubo, ladoCubo);
+		glVertex3f(0, 0, ladoCubo);
+		glVertex3f(0, 0, 0);
+		glVertex3f(0, ladoCubo, 0);
 
-      ponColor(modelo[i].colores[5]);
-      glVertex3f(0, 0, 0);
-      glVertex3f(0, 0, ladoCubo);
-      glVertex3f(ladoCubo, 0, ladoCubo);
-      glVertex3f(ladoCubo, 0, 0);
+		ponColor(modelo[i].colores[5]);
+		glVertex3f(0, 0, 0);
+		glVertex3f(0, 0, ladoCubo);
+		glVertex3f(ladoCubo, 0, ladoCubo);
+		glVertex3f(ladoCubo, 0, 0);
+	glEnd();
 
-   glEnd();
+	glLineWidth(3);
+	glColor3f(0.0, 0.0, 0.0);
 
-   glLineWidth(3);
-   glColor3f(0.0, 0.0, 0.0);
+	glBegin(GL_LINE_LOOP);
+		glVertex3f(0.0, 0.0, 0.0);
+		glVertex3f(0.0, 0.0, ladoCubo);
+		glVertex3f(ladoCubo, 0.0, ladoCubo);
+		glVertex3f(ladoCubo, 0.0, 0.0);
+	glEnd();
 
-   glBegin(GL_LINE_LOOP);
-      glVertex3f(0.0, 0.0, 0.0);
-      glVertex3f(0.0, 0.0, ladoCubo);
-      glVertex3f(ladoCubo, 0.0, ladoCubo);
-      glVertex3f(ladoCubo, 0.0, 0.0);
-   glEnd();
+	glBegin(GL_LINE_LOOP);
+		glVertex3f(0, ladoCubo, 0);
+		glVertex3f(0, ladoCubo, ladoCubo);
+		glVertex3f(ladoCubo, ladoCubo, ladoCubo);
+		glVertex3f(ladoCubo, ladoCubo, 0);
+		glEnd();
 
-   glBegin(GL_LINE_LOOP);
-      glVertex3f(0, ladoCubo, 0);
-      glVertex3f(0, ladoCubo, ladoCubo);
-      glVertex3f(ladoCubo, ladoCubo, ladoCubo);
-      glVertex3f(ladoCubo, ladoCubo, 0);
-   glEnd();
+	glBegin(GL_LINES);
+		glVertex3f(0, 0, 0);
+		glVertex3f(0, ladoCubo, 0);
 
-   glBegin(GL_LINES);
-      glVertex3f(0, 0, 0);
-      glVertex3f(0, ladoCubo, 0);
+		glVertex3f(ladoCubo, 0, 0);
+		glVertex3f(ladoCubo, ladoCubo, 0);
 
-      glVertex3f(ladoCubo, 0, 0);
-      glVertex3f(ladoCubo, ladoCubo, 0);
+		glVertex3f(ladoCubo, 0, ladoCubo);
+		glVertex3f(ladoCubo, ladoCubo, ladoCubo);
 
-      glVertex3f(ladoCubo, 0, ladoCubo);
-      glVertex3f(ladoCubo, ladoCubo, ladoCubo);
+		glVertex3f(0, 0, ladoCubo);
+		glVertex3f(0, ladoCubo, ladoCubo);
+	glEnd();
 
-      glVertex3f(0, 0, ladoCubo);
-      glVertex3f(0, ladoCubo, ladoCubo);
-   glEnd();
-
-   glPopMatrix();
-   glFlush();
+	glPopMatrix();
+	glFlush();
 }
 
 void ponColor (int color) {
-   switch(color) {
-      case  BLANCO:     glColor3f(1.0, 1.0, 1.0);
-                        break;
+	switch(color) {
+		case  BLANCO:     glColor3f(1.0, 1.0, 1.0);
+		break;
 
-      case  AZUL:       glColor3f(0.0, 0.0, 1.0);
-                        break;
+		case  AZUL:       glColor3f(0.0, 0.0, 1.0);
+		break;
 
-      case  NARANJA:    glColor3f(1.0, 0.5, 0.2);
-                        break;
+		case  NARANJA:    glColor3f(1.0, 0.5, 0.2);
+		break;
 
-      case  ROJO:       glColor3f(1.0, 0.0, 0.0);
-                        break;
+		case  ROJO:       glColor3f(1.0, 0.0, 0.0);
+		break;
 
-      case  AMARILLO:   glColor3f(1.0, 1.0, 0.0);
-                        break;
+		case  AMARILLO:   glColor3f(1.0, 1.0, 0.0);
+		break;
 
-      case  VERDE:      glColor3f(0.0, 1.0, 0.0);
-                        break;
+		case  VERDE:      glColor3f(0.0, 1.0, 0.0);
+		break;
 
-      case  NEGRO:      glColor3f(0.2, 0.2, 0.2);
-                        break;
-   }
+		case  NEGRO:      glColor3f(0.2, 0.2, 0.2);
+		break;
+	}
+}
+
+int cuboElejido(int x, int y){
+	GLuint buffer[256];
+	GLint sel;
+	GLint viewport[4];
+
+	glSelectBuffer (256, buffer);
+	glRenderMode (GL_SELECT);
+	glInitNames();
+	glPushName(-1);
+
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+
+	glLoadIdentity();
+	glGetIntegerv (GL_VIEWPORT, viewport);
+	gluPickMatrix (x, viewport[3] - y, 5, 5, viewport);
+	
+	escena();
+	
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+	
+	sel = glRenderMode (GL_RENDER);
+	
+	printf("hits %d\n",sel);
+	
+	GLuint* ptr = (GLuint *) buffer;
+	GLuint  minZ = 0xffffffff;
+	int nombre, n_nombres;
+	
+	for (int i = 0; i < sel; i++) {
+		n_nombres = *ptr;
+		ptr++;
+		if ((*ptr) < minZ) {
+			minZ = *ptr;
+			nombre = *(ptr+2);
+		}
+		ptr += (n_nombres+2);
+	}
+	
+	printf("cubo %d\n",nombre);
+	
+	if (sel > 0)	return nombre;
+	else return (-1);
+}
+
+void coordenadaCubo (int * a, int * b, int * c) {
+	for (int i = 0; i < 2; i++)
+	for (int j = 0; j < 2; j++)
+	for (int k = 0; k < 2; k++)
+		if (rubikLogico[i][j][k] == seleccionado){
+			*a = i;
+			*b = j;
+			*c = k;
+	}
+}
+
+void giraCubo (int cuboAux, int ang){
+	switch (direccion) {
+		case MOV_EJEX:
+			modelo[cuboAux].z = (modelo[cuboAux].z - 2*ladoCubo/2.0)*cos(ang*GL_PI/180.0) - (modelo[cuboAux].y - 2*ladoCubo/2.0)*sin(ang*GL_PI/180.0) + 2*ladoCubo/2.0;
+			modelo[cuboAux].y = (modelo[cuboAux].z - 2*ladoCubo/2.0)*sin(ang*GL_PI/180.0) + (modelo[cuboAux].y - 2*ladoCubo/2.0)*cos(ang*GL_PI/180.0) + 2*ladoCubo/2.0;
+		break;
+		case MOV_EJEY:
+			modelo[cuboAux].x = (modelo[cuboAux].x - 2*ladoCubo/2.0)*cos(ang*GL_PI/180.0) - (modelo[cuboAux].z - 2*ladoCubo/2.0)*sin(ang*GL_PI/180.0) + 2*ladoCubo/2.0;
+			modelo[cuboAux].z = (modelo[cuboAux].x - 2*ladoCubo/2.0)*sin(ang*GL_PI/180.0) + (modelo[cuboAux].z - 2*ladoCubo/2.0)*cos(ang*GL_PI/180.0) + 2*ladoCubo/2.0;
+		break;
+	}
+}
+
+void animacionCubo(){
+	int x, y, z;
+	int auxCubo;
+	int i,j;
+//printf("animacion\n");
+	coordenadaCubo(&x, &y, &z);
+	switch (direccion) {
+		case MOV_EJEX:
+			for (i = 0; i < 2; i++)
+				for (j = 0; j < 2; j++){
+					auxCubo = rubikLogico[x][i][j];
+					giraCubo (auxCubo, sentido*3);
+					modelo[auxCubo].alfaX += sentido*3;
+				}
+		break;
+		case MOV_EJEY:
+			for (i = 0; i < 2; i++)
+				for (j = 0; j < 2; j++){
+					auxCubo = rubikLogico[i][y][j];
+					giraCubo (auxCubo, sentido*3);
+					modelo[auxCubo].alfaY += sentido*3;
+				}
+		break;
+	}
+}
+
+void soltarRubik(){
+	int x, y, z;
+	int i, j;
+	int posAux[4];
+	int dif;
+	int numRot, cuboAux;
+
+	switch (direccion) {
+		case MOV_EJEX:
+			if (modelo[seleccionado].alfaX < 0) modelo[seleccionado].alfaX += 360;
+			dif = modelo[seleccionado].alfaX - giroAntX;
+			if (dif < 0) dif += 360;
+			numRot = ((dif + 45)/90)%4;
+			coordenadaCubo(&x, &y, &z);
+			for (i = 0; i < 2; i++)	for (j = 0; j < 2; j++){
+				cuboAux = rubikLogico[x][i][j];
+				modelo[cuboAux].y = modelo[cuboAux].AntY;
+				modelo[cuboAux].z = modelo[cuboAux].AntZ;
+				giraCubo(cuboAux, (numRot*90));
+				modelo[cuboAux].AntY = modelo[cuboAux].y;
+				modelo[cuboAux].AntZ = modelo[cuboAux].z;
+				modelo[cuboAux].alfaX = (90*numRot+giroAntX) % 360;
+			}
+			posAux[0]=rubikLogico[x][0][0];
+			posAux[1]=rubikLogico[x][1][0];
+			posAux[2]=rubikLogico[x][1][1];
+			posAux[3]=rubikLogico[x][0][1];
+			
+			rubikLogico[x][0][0]=posAux[(numRot)%4];
+			rubikLogico[x][1][0]=posAux[(numRot+1)%4];
+			rubikLogico[x][1][1]=posAux[(numRot+2)%4];
+			rubikLogico[x][0][1]=posAux[(numRot+3)%4];
+		break;
+			
+		case MOV_EJEY:
+			if (modelo[seleccionado].alfaY < 0) modelo[seleccionado].alfaY += 360;
+			dif = modelo[seleccionado].alfaY - giroAntY;
+			if (dif < 0) dif += 360;
+			numRot = ((dif + 45)/90)%4;
+			coordenadaCubo(&x, &y, &z);
+			for (i = 0; i < 2; i++)	for (j = 0; j < 2; j++){
+				cuboAux = rubikLogico[i][y][j];
+				modelo[cuboAux].x = modelo[cuboAux].AntX;
+				modelo[cuboAux].z = modelo[cuboAux].AntZ;
+				giraCubo(cuboAux, (numRot*90));
+				modelo[cuboAux].AntX = modelo[cuboAux].x;
+				modelo[cuboAux].AntZ = modelo[cuboAux].z;
+				modelo[cuboAux].alfaY = (90*numRot+giroAntY) % 360;
+			}
+			posAux[0]=rubikLogico[0][y][0];
+			posAux[1]=rubikLogico[0][y][1];
+			posAux[2]=rubikLogico[1][y][1];
+			posAux[3]=rubikLogico[1][y][0];
+			
+			rubikLogico[0][y][0]=posAux[(numRot)%4];
+			rubikLogico[0][y][1]=posAux[(numRot+1)%4];
+			rubikLogico[1][y][1]=posAux[(numRot+2)%4];
+			rubikLogico[1][y][0]=posAux[(numRot+3)%4];
+		break;
+			
+	}
+//	escena();
 }
 
 void transformar (){
-	if(modo==MODO_STANDBY)	angY+=0.7;
-	escena();
+	if(modo==MODO_STANDBY){		angY+=1;
+		if(angY > 360)	angY-=360;
+		escena();}
 }
 
 void tecladoS(int tecla, int x, int y)
 {
-    if(tecla == GLUT_KEY_UP && modo==MODO_ROTACION){
+	if(tecla == GLUT_KEY_UP && modo==MODO_ROTACION){
 		enfocar+=0.02;
 //printf("%.2f\n",angX);
 		reshape(ventanaX, ventanaY);
 		escena();
 	}
 
-    if(tecla == GLUT_KEY_DOWN && modo==MODO_ROTACION){
-		enfocar-=0.02;
+	if(tecla == GLUT_KEY_DOWN && modo==MODO_ROTACION){
+		if(enfocar > 0.02)	enfocar-=0.02;
+		else enfocar = 0.01;
 //printf("%.2f\n",angX);
 		reshape(ventanaX, ventanaY);
 		escena();
 	}
-
-/*	if(tecla == GLUT_KEY_LEFT){
-		angY+=2.0;
-//printf("%.2f\n",angY);
-		escena();	
-	}
-
-	if(tecla == GLUT_KEY_RIGHT){
-		angY-=2.0;
-//printf("%.2f\n",angY);
-		escena();
-	}
-*/
 }
 
 void teclado(unsigned char tecla, int x,int y)
 {
-    switch(tecla){
-        case 27:
-        {
-            exit(0) ;
-            break;
-        }
-    }
+	switch(tecla){
+		case 27:
+			exit(0) ;
+			break;
+	}
 }
 
 void mouse(int boton,int estado,int x,int y )
 {
-	if (boton==GLUT_LEFT_BUTTON && estado==GLUT_DOWN && modo==MODO_ROTACION ) {
-		rotando = true;
-		inic_x = x;
-		inic_y = y;
-     }
-	if (boton==GLUT_LEFT_BUTTON && estado==GLUT_UP && modo==MODO_ROTACION) {
-		rotando = false;
+	if(boton == GLUT_LEFT_BUTTON){
+		switch (estado) {
+			case GLUT_DOWN:
+				switch (modo) {
+					case MODO_ROTACION:
+						ratonPresionado = true;
+						antX = x;
+						antY = y;
+					break;
+				
+					case MODO_JUEGO:
+						seleccionado = cuboElejido(x,y);
+						if (seleccionado >= 0){
+							ratonPresionado = true;
+							antX = x;
+							antY = y;
+							giroAntX = modelo[seleccionado].alfaX;
+							giroAntY = modelo[seleccionado].alfaY;}
+					break;
+				}
+			break;
+			
+			case GLUT_UP:
+				switch (modo) {
+					case MODO_ROTACION:
+						ratonPresionado = false;
+						direccion = -1;
+					break;
+				
+					case MODO_JUEGO:
+						if (seleccionado >= 0){
+							soltarRubik();
+							ratonPresionado = false;
+							if (verificar_solucion())	//cuboResuelto();
+							printf("cubo resuelto\n");
+						}
+						escena();
+						direccion = -1;
+						sentido = 0;
+					break;
+				}
+			break;
+		}
 	}
 }
 
-void rotarModoRotacion(int x, int y){
-	if(modo==MODO_ROTACION && rotando){
-		float dif_x=float(x-inic_x)/5.0;
-		float dif_y=float(y-inic_y)/5.0;
-		if(dif_x < dif_y){
-			angY+=dif_y;
-		}else{
-			angX-=dif_x;
-		}
-		escena();
+void rotarRaton(int x, int y){
+	switch (modo) {
+		case MODO_ROTACION:
+		
+			switch (ratonPresionado) {
+				case true:
+					if(direccion == -1){
+						if (abs(x-antX) > abs(y-antY))
+						{
+							direccion = MOV_EJEY;
+						}else{
+							direccion = MOV_EJEX;
+						}
+					}
+					
+					if (direccion == MOV_EJEY) {
+						if (x > antX)	angY +=2;
+						else		angY -=2;
+//						antX = x;
+					}else if (direccion == MOV_EJEX) {
+						if (y > antY)	angX +=2;
+						else		angX -=2;
+					}
+					antX = x;
+					antY = y;
+			//		escena();
+				break;
+				case false:
+//					direccion = -1;
+				break;
+			}
+		break;
+			
+		case MODO_JUEGO:
+		
+			switch (ratonPresionado) {
+				case true:
+					if(direccion == -1){
+						if (abs(x-antX) > abs(y-antY))
+						{
+							direccion = MOV_EJEY;
+							if (x > antX) sentido = ANTIHORARIO;
+							else sentido = HORARIO;
+						}else{
+							direccion = MOV_EJEX;
+							if (y > antY) sentido = HORARIO;
+							else sentido = ANTIHORARIO;
+						}
+					}
+					
+					animacionCubo();
+					
+					if (direccion == MOV_EJEY) {
+						if (x > antX) sentido = ANTIHORARIO;
+						else sentido = HORARIO;
+						antX = x;
+					}else if (direccion == MOV_EJEX) {
+						if (y > antY) sentido = HORARIO;
+						else sentido = ANTIHORARIO;
+						antY = y;
+					}
+//					antX = x;
+//					antY = y;
+			//		escena()
+				break;
+				case false:
+//					direccion = -1;
+//					sentido = 0;
+				break;
+			}
+		break;
+		
 	}
-
+	glutPostRedisplay();
 }
 
 void reshape(int w, int h)
 {
-   GLfloat size = 10.0f, redimension =(GLfloat)w / (GLfloat)h;
-   glViewport(0,0,(GLsizei)w, (GLsizei)h);
-   glMatrixMode(GL_PROJECTION);
-   glLoadIdentity();
-    if (w <= h)
-        glOrtho (-size, size, -size / redimension, size/ redimension, 10.0f*enfocar, -7.00f*enfocar);
-    else
-        glOrtho (-size* redimension, size* redimension, -size, size, 7.0f*enfocar, -7.0f*enfocar);
+	GLfloat size = 10.0f, redimension =(GLfloat)w / (GLfloat)h;
+	glViewport(0,0,(GLsizei)w, (GLsizei)h);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	if (w <= h)
+	glOrtho (-size, size, -size / redimension, size/ redimension, 7.0f*enfocar, -7.0f*enfocar);
+	else
+	glOrtho (-size* redimension, size* redimension, -size, size, 7.0f*enfocar, -7.0f*enfocar);
 
-	glMatrixMode(GL_MODELVIEW);
+//	glMatrixMode(GL_MODELVIEW);
 }
 
 void principal(int value){
 	switch(value){
 		case 1 :
-		{
 			modo=MODO_ROTACION;
 			break;
-		}
 		case 2 :
-                {
-                        modo=MODO_JUEGO;
-                        break;
-                }
+			modo=MODO_JUEGO;
+			break;
 		case 3 :
-                {
-                        modo=MODO_STANDBY;
-                        break;
-                }
+			modo=MODO_STANDBY;
+			break;
 	}
 }
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv){
 	generarDatosCubo();
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-    glutInitWindowSize(ventanaX,ventanaY);
-    glutInitWindowPosition(100,100);
-    glutCreateWindow("Proyecto");
-
-    init();
-    glutIdleFunc(transformar);
-    glutDisplayFunc(escena);
-    glutReshapeFunc(reshape);
-    glutMouseFunc(mouse);
-	glutMotionFunc(rotarModoRotacion);
-    glutSpecialFunc(tecladoS);
-    glutKeyboardFunc(teclado);
-
+	
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+	glutInitWindowSize(ventanaX,ventanaY);
+	glutInitWindowPosition(200,200);
+	glutCreateWindow("Proyecto");
+	
+	init();
+	glutIdleFunc(transformar);
+	glutDisplayFunc(escena);
+	glutReshapeFunc(reshape);
+	glutMouseFunc(mouse);
+	glutMotionFunc(rotarRaton);
+	glutSpecialFunc(tecladoS);
+	glutKeyboardFunc(teclado);
+	
 	glutCreateMenu(principal);
 	glutAddMenuEntry("Modo Rotacion",1);
 	glutAddMenuEntry("Modo Juego",2);
 	glutAddMenuEntry("Modo Stand By",3);
 	
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
-
-    glutMainLoop();
-    return 0;
+	
+	glutMainLoop();
+	return 0;
 }
-
-
-
