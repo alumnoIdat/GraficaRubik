@@ -149,8 +149,8 @@ void generarDatosCubo(){
 }
 
 bool verificar_solucion(){
-		if((rubikLogico[0][0][0]+rubikLogico[1][1][1])!=7 || (rubikLogico[1][0][0]+rubikLogico[0][1][1])!=7)	return false;
-		if(abs(rubikLogico[0][0][0]-rubikLogico[1][0][0])*abs(rubikLogico[0][0][0]-rubikLogico[0][0][1])*abs(rubikLogico[0][0][0]-rubikLogico[0][1][0]) != 8)	return false;
+	if((rubikLogico[0][0][0]+rubikLogico[1][1][1])!=7 || (rubikLogico[1][0][0]+rubikLogico[0][1][1])!=7)	return false;
+	if(abs(rubikLogico[0][0][0]-rubikLogico[1][0][0])*abs(rubikLogico[0][0][0]-rubikLogico[0][0][1])*abs(rubikLogico[0][0][0]-rubikLogico[0][1][0]) != 8)	return false;
 	return true;
 }
 
@@ -404,11 +404,11 @@ void soltarRubik(){
 	int i, j;
 	int posAux[4];
 	int dif;
-	int numRot, cuboAux;
+	int n_giros, cuboAux;
 
 	switch (direccion) {
 		case MOV_EJEX:
-			numRot = giros();
+			n_giros = giros();
 			coordenadaCubo(&x, &y, &z);
 			for (i = 0; i < 2; i++)	for (j = 0; j < 2; j++){
 				cuboAux = rubikLogico[x][i][j];
@@ -417,21 +417,21 @@ void soltarRubik(){
 				giraCubo(cuboAux, (numRot*90));
 				modelo[cuboAux].AntY = modelo[cuboAux].y;
 				modelo[cuboAux].AntZ = modelo[cuboAux].z;
-				modelo[cuboAux].alfaX = (90*numRot+giroAntX) % 360;
+				modelo[cuboAux].alfaX = (90*n_giros+giroAntX) % 360;
 			}
 			posAux[0]=rubikLogico[x][0][0];
 			posAux[1]=rubikLogico[x][1][0];
 			posAux[2]=rubikLogico[x][1][1];
 			posAux[3]=rubikLogico[x][0][1];
 			
-			rubikLogico[x][0][0]=posAux[(numRot)%4];
-			rubikLogico[x][1][0]=posAux[(numRot+1)%4];
-			rubikLogico[x][1][1]=posAux[(numRot+2)%4];
-			rubikLogico[x][0][1]=posAux[(numRot+3)%4];
+			rubikLogico[x][0][0]=posAux[(n_giros)%4];
+			rubikLogico[x][1][0]=posAux[(n_giros+1)%4];
+			rubikLogico[x][1][1]=posAux[(n_giros+2)%4];
+			rubikLogico[x][0][1]=posAux[(n_giros+3)%4];
 		break;
 			
 		case MOV_EJEY:
-			numRot = giros();
+			n_giros = giros();
 			coordenadaCubo(&x, &y, &z);
 			for (i = 0; i < 2; i++)	for (j = 0; j < 2; j++){
 				cuboAux = rubikLogico[i][y][j];
@@ -440,21 +440,21 @@ void soltarRubik(){
 				giraCubo(cuboAux, (numRot*90));
 				modelo[cuboAux].AntX = modelo[cuboAux].x;
 				modelo[cuboAux].AntZ = modelo[cuboAux].z;
-				modelo[cuboAux].alfaY = (90*numRot+giroAntY) % 360;
+				modelo[cuboAux].alfaY = (90*n_giros+giroAntY) % 360;
 			}
 			posAux[0]=rubikLogico[0][y][0];
 			posAux[1]=rubikLogico[0][y][1];
 			posAux[2]=rubikLogico[1][y][1];
 			posAux[3]=rubikLogico[1][y][0];
 			
-			rubikLogico[0][y][0]=posAux[(numRot)%4];
-			rubikLogico[0][y][1]=posAux[(numRot+1)%4];
-			rubikLogico[1][y][1]=posAux[(numRot+2)%4];
-			rubikLogico[1][y][0]=posAux[(numRot+3)%4];
+			rubikLogico[0][y][0]=posAux[(n_giros)%4];
+			rubikLogico[0][y][1]=posAux[(n_giros+1)%4];
+			rubikLogico[1][y][1]=posAux[(n_giros+2)%4];
+			rubikLogico[1][y][0]=posAux[(n_giros+3)%4];
 		break;
 			
 		case MOV_EJEZ:
-			numRot = giros();
+			n_giros = giros();
 			coordenadaCubo(&x, &y, &z);
 			for (i = 0; i < 2; i++)	for (j = 0; j < 2; j++){
 				cuboAux = rubikLogico[i][j][z];
@@ -463,17 +463,17 @@ void soltarRubik(){
 				giraCubo(cuboAux, (numRot*90));
 				modelo[cuboAux].AntX = modelo[cuboAux].x;
 				modelo[cuboAux].AntY = modelo[cuboAux].y;
-				modelo[cuboAux].alfaZ = (90*numRot+giroAntZ) % 360;
+				modelo[cuboAux].alfaZ = (90*n_giros+giroAntZ) % 360;
 			}
 			posAux[0]=rubikLogico[0][0][z];
 			posAux[1]=rubikLogico[1][0][z];
 			posAux[2]=rubikLogico[1][1][z];
 			posAux[3]=rubikLogico[0][1][z];
 			
-			rubikLogico[0][0][z]=posAux[(numRot)%4];
-			rubikLogico[1][0][z]=posAux[(numRot+1)%4];
-			rubikLogico[1][1][z]=posAux[(numRot+2)%4];
-			rubikLogico[0][1][z]=posAux[(numRot+3)%4];
+			rubikLogico[0][0][z]=posAux[(n_giros)%4];
+			rubikLogico[1][0][z]=posAux[(n_giros+1)%4];
+			rubikLogico[1][1][z]=posAux[(n_giros+2)%4];
+			rubikLogico[0][1][z]=posAux[(n_giros+3)%4];
 		break;
 	}
 }
